@@ -1,0 +1,289 @@
+:root {
+  --night-navy: #0b1220;
+  --panel-navy: #121b2e;
+  --pitch-green: #1fae5c;
+  --scoreboard-amber: #f4b740;
+  --alert-crimson: #e63950;
+  --floodlight-white: #f5f7fa;
+  --slate-mist: #93a1b5;
+  --hairline: rgba(147, 161, 181, 0.25);
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--night-navy);
+  color: var(--floodlight-white);
+  font-family: var(--font-body);
+  min-height: 100vh;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
+
+/* ---------- Ticker header ---------- */
+.ticker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--hairline);
+  background: linear-gradient(180deg, var(--panel-navy), var(--night-navy));
+}
+
+.ticker__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.ticker__dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--pitch-green);
+  box-shadow: 0 0 8px var(--pitch-green);
+  animation: pulse 1.6s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.ticker__ai { color: var(--scoreboard-amber); margin-left: 0.15rem; }
+
+.ticker__clock {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.ticker__label { color: var(--slate-mist); font-size: 0.8rem; }
+.ticker__minute {
+  font-size: 1.4rem;
+  color: var(--scoreboard-amber);
+  min-width: 3.2ch;
+}
+
+.ticker__controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; }
+
+.ticker__field {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: var(--slate-mist);
+  gap: 0.25rem;
+}
+
+.ticker__field select {
+  background: var(--panel-navy);
+  color: var(--floodlight-white);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-body);
+}
+
+.ticker__a11y {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--floodlight-white);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.ticker__a11y[aria-pressed="true"] {
+  background: var(--pitch-green);
+  border-color: var(--pitch-green);
+  color: var(--night-navy);
+  font-weight: 600;
+}
+
+/* ---------- Layout ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.bowl-panel, .chat-panel {
+  background: var(--panel-navy);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.bowl-panel h2, .chat-panel h2 {
+  font-family: var(--font-display);
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+
+.bowl-panel__sub {
+  color: var(--slate-mist);
+  font-size: 0.85rem;
+  margin: 0 0 1rem;
+}
+
+/* ---------- Stadium bowl heatmap ---------- */
+.bowl {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 0.6rem;
+  border-radius: 999px / 40px;
+  padding: 1.5rem 1rem;
+  background: radial-gradient(ellipse at center, #0e2c1a 0%, var(--panel-navy) 70%);
+  border: 1px solid var(--hairline);
+}
+
+.bowl__section {
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--night-navy);
+  font-weight: 600;
+  transition: background-color 0.6s ease;
+}
+
+.bowl__section span { display: block; font-size: 0.7rem; font-weight: 400; opacity: 0.85; }
+
+.legend {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  padding: 0;
+  margin: 1rem 0;
+  font-size: 0.8rem;
+  color: var(--slate-mist);
+}
+
+.legend li { display: flex; align-items: center; gap: 0.4rem; }
+
+.legend__swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.legend__swatch--low { background: var(--pitch-green); }
+.legend__swatch--mod { background: var(--scoreboard-amber); }
+.legend__swatch--high { background: var(--alert-crimson); }
+
+.quick-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+
+.chip {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--floodlight-white);
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.chip:hover, .ticker__a11y:hover { border-color: var(--pitch-green); }
+
+/* ---------- Chat panel ---------- */
+.chat-log {
+  height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-right: 0.25rem;
+}
+
+.chat-msg {
+  padding: 0.6rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  max-width: 90%;
+}
+
+.chat-msg--bot {
+  background: rgba(31, 174, 92, 0.12);
+  border: 1px solid rgba(31, 174, 92, 0.3);
+  align-self: flex-start;
+}
+
+.chat-msg--user {
+  background: rgba(147, 161, 181, 0.12);
+  border: 1px solid var(--hairline);
+  align-self: flex-end;
+}
+
+.chat-msg--error {
+  background: rgba(230, 57, 80, 0.12);
+  border: 1px solid rgba(230, 57, 80, 0.4);
+  align-self: flex-start;
+}
+
+.chat-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.chat-form input {
+  flex: 1;
+  background: var(--night-navy);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  color: var(--floodlight-white);
+  font-family: var(--font-body);
+}
+
+.chat-form button {
+  background: var(--pitch-green);
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  color: var(--night-navy);
+  cursor: pointer;
+}
+
+.chat-form button:focus-visible,
+.chip:focus-visible,
+.ticker__a11y:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--scoreboard-amber);
+  outline-offset: 2px;
+}
+
+.footnote {
+  text-align: center;
+  color: var(--slate-mist);
+  font-size: 0.75rem;
+  padding: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker__dot { animation: none; }
+  .bowl__section { transition: none; }
+}

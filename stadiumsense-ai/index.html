@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StadiumSense AI — FIFA World Cup 2026 Fan Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="ticker" role="banner">
+    <div class="ticker__brand">
+      <span class="ticker__dot" aria-hidden="true"></span>
+      <span class="ticker__title">StadiumSense<span class="ticker__ai">AI</span></span>
+    </div>
+
+    <div class="ticker__clock" aria-live="polite">
+      <span class="ticker__label">Match Clock</span>
+      <span class="ticker__minute" id="matchMinute">00'</span>
+      <input type="range" id="minuteSlider" min="0" max="95" value="0" aria-label="Simulate match minute" />
+    </div>
+
+    <div class="ticker__controls">
+      <label class="ticker__field">
+        <span>My Gate</span>
+        <select id="gateSelect" aria-label="Select your section">
+          <option value="A1">A1 — North Lower</option>
+          <option value="A2">A2 — North Upper</option>
+          <option value="B1">B1 — East Lower</option>
+          <option value="B2">B2 — East Upper</option>
+          <option value="C1">C1 — South Lower</option>
+          <option value="C2">C2 — South Upper</option>
+          <option value="D1">D1 — West Lower</option>
+          <option value="D2">D2 — West Upper</option>
+        </select>
+      </label>
+
+      <label class="ticker__field">
+        <span>Language</span>
+        <select id="languageSelect" aria-label="Select response language">
+          <option>English</option>
+          <option>Spanish</option>
+          <option>French</option>
+          <option>Portuguese</option>
+          <option>Hindi</option>
+          <option>Arabic</option>
+        </select>
+      </label>
+
+      <button id="accessibilityToggle" class="ticker__a11y" aria-pressed="false">
+        ♿ Accessibility mode
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="bowl-panel" aria-labelledby="bowlHeading">
+      <h2 id="bowlHeading">Live Stadium Bowl</h2>
+      <p class="bowl-panel__sub">Simulated crowd density, refreshing every few seconds.</p>
+
+      <div class="bowl" id="stadiumBowl" role="img" aria-label="Stadium seating sections colored by current crowd level"></div>
+
+      <ul class="legend">
+        <li><span class="legend__swatch legend__swatch--low"></span> Low</li>
+        <li><span class="legend__swatch legend__swatch--mod"></span> Moderate</li>
+        <li><span class="legend__swatch legend__swatch--high"></span> High</li>
+      </ul>
+
+      <div class="quick-actions">
+        <button class="chip" data-action="restroom">Nearest restroom</button>
+        <button class="chip" data-action="food">Shortest food queue</button>
+        <button class="chip" data-action="medical">Nearest medical point</button>
+        <button class="chip" data-action="transit_stop">Nearest transit</button>
+      </div>
+    </section>
+
+    <section class="chat-panel" aria-labelledby="chatHeading">
+      <h2 id="chatHeading">Ask StadiumSense AI</h2>
+      <div class="chat-log" id="chatLog" aria-live="polite">
+        <div class="chat-msg chat-msg--bot">
+          Hi! I'm StadiumSense AI. Ask me about crowd levels, wait times, restrooms, food, medical points, or accessible routes near your section.
+        </div>
+      </div>
+      <form id="chatForm" class="chat-form">
+        <label class="sr-only" for="chatInput">Type your question</label>
+        <input id="chatInput" type="text" maxlength="500" placeholder="e.g. Where's a quiet restroom near me?" autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="footnote">
+    Built for FIFA World Cup 2026 · Fan Navigation &amp; Crowd Management vertical · Demo data only
+  </footer>
+
+  <script src="js/stadiumData.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
