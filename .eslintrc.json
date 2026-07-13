@@ -1,0 +1,26 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2021": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "script"
+  },
+  "globals": {
+    "simulateCrowdDensity": "readonly",
+    "getCrowdLevel": "readonly",
+    "estimateQueueMinutes": "readonly",
+    "findNearestAmenity": "readonly",
+    "AMENITIES": "readonly",
+    "STADIUM_SECTIONS": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-console": "off",
+    "eqeqeq": "error",
+    "curly": ["error", "multi-line"]
+  }
+}

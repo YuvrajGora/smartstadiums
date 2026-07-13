@@ -1,8 +1,8 @@
 // tests/test-logic.js
-// Run with: node tests/test-logic.js
-// Plain Node assertions -- no framework dependency, keeps repo small and fast to run.
+// Run with: npm test  (uses Node's built-in test runner, no extra dependency)
 
-const assert = require("assert");
+const { test, describe } = require("node:test");
+const assert = require("node:assert/strict");
 const {
   simulateCrowdDensity,
   getCrowdLevel,
@@ -11,79 +11,85 @@ const {
   STADIUM_SECTIONS,
 } = require("../js/stadiumData.js");
 
-let passed = 0;
-let failed = 0;
+describe("getCrowdLevel", () => {
+  test("classifies low occupancy correctly", () => {
+    assert.equal(getCrowdLevel(0.1), "Low");
+  });
 
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`PASS: ${name}`);
-    passed++;
-  } catch (err) {
-    console.error(`FAIL: ${name}`);
-    console.error(`  ${err.message}`);
-    failed++;
-  }
-}
+  test("classifies moderate occupancy correctly", () => {
+    assert.equal(getCrowdLevel(0.5), "Moderate");
+  });
 
-test("getCrowdLevel classifies low occupancy correctly", () => {
-  assert.strictEqual(getCrowdLevel(0.1), "Low");
-});
+  test("classifies high occupancy correctly", () => {
+    assert.equal(getCrowdLevel(0.85), "High");
+  });
 
-test("getCrowdLevel classifies moderate occupancy correctly", () => {
-  assert.strictEqual(getCrowdLevel(0.5), "Moderate");
-});
-
-test("getCrowdLevel classifies high occupancy correctly", () => {
-  assert.strictEqual(getCrowdLevel(0.85), "High");
-});
-
-test("estimateQueueMinutes returns higher wait during halftime rush window", () => {
-  const rush = estimateQueueMinutes(0.6, 50); // halftime window
-  const normal = estimateQueueMinutes(0.6, 25); // mid first half
-  assert.ok(rush > normal, `expected rush (${rush}) > normal (${normal})`);
-});
-
-test("estimateQueueMinutes never returns a negative number", () => {
-  const result = estimateQueueMinutes(0, 30);
-  assert.ok(result >= 0);
-});
-
-test("findNearestAmenity prefers same-section match over same-gate match", () => {
-  const result = findNearestAmenity("A1", "restroom", false);
-  assert.strictEqual(result.id, "rr-1");
-  assert.strictEqual(result.distance, 0);
-});
-
-test("findNearestAmenity respects accessibleOnly filter", () => {
-  const result = findNearestAmenity("B1", "restroom", true);
-  // rr-2 (near B1) is NOT accessible, so it must fall back to a different accessible restroom
-  assert.ok(result.accessible === true);
-  assert.notStrictEqual(result.id, "rr-2");
-});
-
-test("findNearestAmenity returns null when no amenity of that type exists", () => {
-  const result = findNearestAmenity("A1", "nonexistent_type", false);
-  assert.strictEqual(result, null);
-});
-
-test("simulateCrowdDensity returns one entry per stadium section", () => {
-  const result = simulateCrowdDensity(30, 42);
-  assert.strictEqual(result.length, STADIUM_SECTIONS.length);
-});
-
-test("simulateCrowdDensity always returns occupancy ratios between 0 and 1", () => {
-  const result = simulateCrowdDensity(50, 7);
-  result.forEach((r) => {
-    assert.ok(r.occupancyRatio >= 0 && r.occupancyRatio <= 1);
+  test("handles boundary values consistently", () => {
+    assert.equal(getCrowdLevel(0.34), "Low");
+    assert.equal(getCrowdLevel(0.35), "Moderate");
+    assert.equal(getCrowdLevel(0.69), "Moderate");
+    assert.equal(getCrowdLevel(0.7), "High");
   });
 });
 
-test("simulateCrowdDensity is reproducible with the same seed", () => {
-  const a = simulateCrowdDensity(30, 99);
-  const b = simulateCrowdDensity(30, 99);
-  assert.deepStrictEqual(a, b);
+describe("estimateQueueMinutes", () => {
+  test("returns a higher wait during the halftime rush window", () => {
+    const rush = estimateQueueMinutes(0.6, 50);
+    const normal = estimateQueueMinutes(0.6, 25);
+    assert.ok(rush > normal, `expected rush (${rush}) > normal (${normal})`);
+  });
+
+  test("returns a higher wait during the pre-kickoff rush window", () => {
+    const rush = estimateQueueMinutes(0.6, 5);
+    const normal = estimateQueueMinutes(0.6, 25);
+    assert.ok(rush > normal);
+  });
+
+  test("never returns a negative number", () => {
+    assert.ok(estimateQueueMinutes(0, 30) >= 0);
+  });
+
+  test("scales with occupancy", () => {
+    const low = estimateQueueMinutes(0.1, 30);
+    const high = estimateQueueMinutes(0.9, 30);
+    assert.ok(high > low);
+  });
 });
 
-console.log(`\n${passed} passed, ${failed} failed`);
-if (failed > 0) process.exit(1);
+describe("findNearestAmenity", () => {
+  test("prefers a same-section match over a same-gate match", () => {
+    const result = findNearestAmenity("A1", "restroom", false);
+    assert.equal(result.id, "rr-1");
+    assert.equal(result.distance, 0);
+  });
+
+  test("respects the accessibleOnly filter", () => {
+    const result = findNearestAmenity("B1", "restroom", true);
+    assert.equal(result.accessible, true);
+    assert.notEqual(result.id, "rr-2");
+  });
+
+  test("returns null when no amenity of that type exists", () => {
+    assert.equal(findNearestAmenity("A1", "nonexistent_type", false), null);
+  });
+});
+
+describe("simulateCrowdDensity", () => {
+  test("returns one entry per stadium section", () => {
+    const result = simulateCrowdDensity(30, 42);
+    assert.equal(result.length, STADIUM_SECTIONS.length);
+  });
+
+  test("always returns occupancy ratios between 0 and 1", () => {
+    const result = simulateCrowdDensity(50, 7);
+    for (const r of result) {
+      assert.ok(r.occupancyRatio >= 0 && r.occupancyRatio <= 1);
+    }
+  });
+
+  test("is reproducible with the same seed", () => {
+    const a = simulateCrowdDensity(30, 99);
+    const b = simulateCrowdDensity(30, 99);
+    assert.deepEqual(a, b);
+  });
+});

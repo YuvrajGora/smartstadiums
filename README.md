@@ -2,6 +2,21 @@
 
 A GenAI-powered fan navigation and crowd management assistant for a FIFA World Cup 2026 host stadium.
 
+## Challenge Area Coverage
+
+The brief names eight possible focus areas. This table maps each one to the concrete feature that addresses it, so alignment isn't left implicit:
+
+| Challenge Area | Feature in this solution |
+|---|---|
+| **Navigation** | Stadium bowl heatmap + quick-action buttons route a fan to the nearest restroom/food/medical/transit point from their section |
+| **Crowd management** | Live-simulated per-section occupancy, color-coded Low/Moderate/High, refreshing in real time |
+| **Accessibility** | Dedicated accessibility mode: filters all recommendations to wheelchair-accessible amenities and simplifies AI response language |
+| **Transportation** | Transit-stop amenity tracking; the Ops Dashboard flags when crowd is building near a transit point |
+| **Sustainability** | Ops Dashboard sustainability tip: recommends directing fans to public transit/recycling points based on live crowd data |
+| **Multilingual assistance** | Fan chat responds in the user's selected language (English, Spanish, French, Portuguese, Hindi, Arabic) |
+| **Operational intelligence** | Staff View: aggregate occupancy stats, busiest-section tracking, and an AI-generated operational recommendation |
+| **Real-time decision support** | Both the fan chat and the Ops "Get AI Ops Recommendation" button reason over live, current-minute stadium context rather than static FAQ answers |
+
 ## Chosen Vertical
 
 **Fan Navigation & Crowd Management**, with supporting elements of **Accessibility**, **Real-time Decision Support**, **Sustainability/Transportation**, and **Operational Intelligence**. The solution serves two of the personas named in the brief:
@@ -35,6 +50,12 @@ This keeps the Gen AI usage meaningful rather than decorative: the model is doin
 - The 8-second live-refresh loop pauses automatically when the browser tab is hidden (Page Visibility API) and resumes on return, avoiding wasted work in background tabs.
 - Identical chat questions asked under identical stadium conditions are served from a small client-side cache instead of re-calling the Gemini API.
 - The serverless rate limiter periodically purges stale entries so its in-memory map doesn't grow unbounded on a long-lived warm instance.
+
+### Code Quality Tooling
+
+- **ESLint** (`.eslintrc.json`) enforces `eqeqeq`, catches unused variables, and requires braces on multi-line conditionals across `js/` and `api/`.
+- **Prettier** (`.prettierrc.json`) defines consistent formatting (semicolons, quote style, line width).
+- Both run in CI (`.github/workflows/test.yml`) via `npm run lint`, alongside the test suite via `npm test`, on every push and pull request.
 
 ## Assumptions
 
@@ -79,16 +100,16 @@ Then open the local URL Vercel prints (typically `http://localhost:3000`).
 
 ## Testing
 
-Pure logic is kept separate from the AI/network layer specifically so it can be unit tested without any API key or network access:
+Pure logic is kept separate from the AI/network layer specifically so it can be unit tested without any API key or network access. Tests use Node's built-in test runner (`node:test`), organized into `describe`/`test` blocks rather than a flat assertion script:
 
-- `tests/test-logic.js` — 11 assertions on crowd-level thresholds, queue estimation during rush windows, accessible-amenity filtering, and simulation reproducibility.
-- `tests/test-validation.js` — 14 assertions on the API layer's input validation and the rate limiter (rejecting oversized/empty input, enforcing per-IP limits, resetting after the time window, and cleaning up stale entries).
+- `tests/test-logic.js` — crowd-level thresholds (including boundary values), queue estimation across rush windows, accessible-amenity filtering, and simulation reproducibility.
+- `tests/test-validation.js` — API input validation (empty/oversized/non-string input) and the rate limiter (per-IP limits, window resets, stale-entry cleanup).
 
 ```bash
 npm test
 ```
 
-A GitHub Actions workflow (`.github/workflows/test.yml`) runs this test suite automatically on every push and pull request.
+Currently **31 tests, all passing**. A GitHub Actions workflow (`.github/workflows/test.yml`) runs `npm run lint` and `npm test` automatically on every push and pull request.
 
 ## Project Structure
 
@@ -105,7 +126,9 @@ stadiumsense-ai/
 ├── tests/
 │   ├── test-logic.js       # Unit tests for stadium/crowd logic
 │   └── test-validation.js  # Unit tests for API validation + rate limiter
-├── .github/workflows/test.yml  # CI: runs the test suite on every push
+├── .github/workflows/test.yml  # CI: lint + tests on every push
+├── .eslintrc.json
+├── .prettierrc.json
 ├── .env.example
 ├── .gitignore
 ├── package.json
