@@ -4,7 +4,7 @@
   "description": "GenAI-powered fan navigation and crowd management assistant for FIFA World Cup 2026 host stadiums.",
   "main": "index.html",
   "scripts": {
-    "test": "node tests/test-logic.js"
+    "test": "node tests/test-logic.js && node tests/test-validation.js"
   },
   "engines": {
     "node": ">=18"

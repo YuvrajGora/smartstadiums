@@ -4,7 +4,10 @@ A GenAI-powered fan navigation and crowd management assistant for a FIFA World C
 
 ## Chosen Vertical
 
-**Fan Navigation & Crowd Management**, with supporting elements of **Accessibility** and **Real-time Decision Support**. The solution helps a fan decide, in the moment, where to go and when — which restroom has the shortest queue, which route is wheelchair-accessible, and how crowd levels are changing across the stadium as the match progresses.
+**Fan Navigation & Crowd Management**, with supporting elements of **Accessibility**, **Real-time Decision Support**, **Sustainability/Transportation**, and **Operational Intelligence**. The solution serves two of the personas named in the brief:
+
+- **Fans** deciding, in the moment, where to go and when — which restroom has the shortest queue, which route is wheelchair-accessible, how crowd levels are changing.
+- **Organizers, volunteers, and venue staff**, via a separate Ops Dashboard (toggle "Switch to Staff View") that surfaces aggregate crowd stats, a sustainability/transport recommendation, and an AI-generated operational action for the busiest section.
 
 ## Approach and Logic
 
@@ -24,6 +27,14 @@ This keeps the Gen AI usage meaningful rather than decorative: the model is doin
 - The **chat panel** sends the fan's question, plus a summary of live section/queue data, to a serverless function (`api/chat.js`), which calls the Gemini API server-side and returns a grounded answer.
 - **Accessibility mode** biases both the quick-action logic and the AI's system instructions toward step-free, wheelchair-friendly options and shorter, clearer sentences.
 - **Language selection** is passed to Gemini so responses come back in the fan's chosen language (English, Spanish, French, Portuguese, Hindi, or Arabic in this demo).
+- **Staff View** (toggle in the header) switches to an Operations & Sustainability Dashboard: average occupancy, count of sections at High crowd, the busiest section, and a rule-based sustainability tip about directing fans toward public transit when crowding builds near a transit stop. A "Get AI Ops Recommendation" button asks Gemini (with a staff-specific system instruction) for one concrete operational action.
+
+### Efficiency measures
+
+- The crowd-density slider debounces re-renders through `requestAnimationFrame`, so dragging it doesn't recompute/repaint on every intermediate event.
+- The 8-second live-refresh loop pauses automatically when the browser tab is hidden (Page Visibility API) and resumes on return, avoiding wasted work in background tabs.
+- Identical chat questions asked under identical stadium conditions are served from a small client-side cache instead of re-calling the Gemini API.
+- The serverless rate limiter periodically purges stale entries so its in-memory map doesn't grow unbounded on a long-lived warm instance.
 
 ## Assumptions
 
@@ -68,28 +79,33 @@ Then open the local URL Vercel prints (typically `http://localhost:3000`).
 
 ## Testing
 
-Pure logic (crowd level classification, queue estimation, nearest-amenity search) is separated from the AI/network layer specifically so it can be unit tested without any API key or network access:
+Pure logic is kept separate from the AI/network layer specifically so it can be unit tested without any API key or network access:
+
+- `tests/test-logic.js` — 11 assertions on crowd-level thresholds, queue estimation during rush windows, accessible-amenity filtering, and simulation reproducibility.
+- `tests/test-validation.js` — 14 assertions on the API layer's input validation and the rate limiter (rejecting oversized/empty input, enforcing per-IP limits, resetting after the time window, and cleaning up stale entries).
 
 ```bash
 npm test
-# or: node tests/test-logic.js
 ```
 
-This runs 11 assertions covering crowd-level thresholds, queue estimation during rush windows, accessible-amenity filtering, and simulation reproducibility.
+A GitHub Actions workflow (`.github/workflows/test.yml`) runs this test suite automatically on every push and pull request.
 
 ## Project Structure
 
 ```
 stadiumsense-ai/
-├── index.html          # Main UI
-├── css/style.css        # Styling
+├── index.html            # Main UI (fan view + staff/ops dashboard)
+├── css/style.css         # Styling
 ├── js/
-│   ├── stadiumData.js   # Mock data + pure, testable logic functions
-│   └── app.js           # Frontend interaction logic
+│   ├── stadiumData.js    # Mock data + pure, testable logic functions
+│   └── app.js            # Frontend interaction logic
 ├── api/
-│   └── chat.js          # Serverless Gemini proxy (server-side API key)
+│   ├── chat.js           # Serverless Gemini proxy (server-side API key)
+│   └── validation.js     # Pure, testable input validation + rate limiter
 ├── tests/
-│   └── test-logic.js    # Unit tests for pure logic functions
+│   ├── test-logic.js       # Unit tests for stadium/crowd logic
+│   └── test-validation.js  # Unit tests for API validation + rate limiter
+├── .github/workflows/test.yml  # CI: runs the test suite on every push
 ├── .env.example
 ├── .gitignore
 ├── package.json

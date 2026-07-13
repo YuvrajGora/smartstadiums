@@ -52,6 +52,10 @@
       <button id="accessibilityToggle" class="ticker__a11y" aria-pressed="false">
         ♿ Accessibility mode
       </button>
+
+      <button id="roleToggle" class="ticker__a11y" aria-pressed="false">
+        🧑‍💼 Switch to Staff View
+      </button>
     </div>
   </header>
 
@@ -75,6 +79,17 @@
         <button class="chip" data-action="medical">Nearest medical point</button>
         <button class="chip" data-action="transit_stop">Nearest transit</button>
       </div>
+    </section>
+
+    <section class="ops-panel" id="opsPanel" aria-labelledby="opsHeading" hidden>
+      <h2 id="opsHeading">Operations &amp; Sustainability Dashboard</h2>
+      <p class="bowl-panel__sub">For organizers, volunteers, and venue staff.</p>
+
+      <dl class="ops-stats" id="opsStats"></dl>
+
+      <div class="ops-sustainability" id="opsSustainability"></div>
+
+      <button id="opsRecommendBtn" class="chip chip--primary">Get AI Ops Recommendation</button>
     </section>
 
     <section class="chat-panel" aria-labelledby="chatHeading">

@@ -2,48 +2,52 @@
 // Vercel serverless function. Runs server-side only.
 // The Gemini API key NEVER reaches the browser - it is read from an
 // environment variable here and used only in this server context.
+//
+// Validation and rate-limiting logic live in ./validation.js as pure,
+// independently unit-tested functions/classes (see tests/test-validation.js).
 
-// Very small in-memory rate limiter (per serverless instance).
-// Not a substitute for a production rate limiter (e.g. Redis-backed),
-// but stops naive abuse/runaway costs in a hackathon deployment.
-const requestLog = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const RATE_LIMIT_MAX_REQUESTS = 20;
+const {
+  validateChatRequest,
+  sanitizeLanguage,
+  sanitizeRole,
+  RateLimiter,
+} = require("./validation.js");
 
-function isRateLimited(ip) {
-  const now = Date.now();
-  const entry = requestLog.get(ip) || { count: 0, windowStart: now };
+// Module-level limiter persists across invocations on a warm serverless instance.
+const limiter = new RateLimiter({ windowMs: 60 * 1000, maxRequests: 20 });
+let lastCleanup = Date.now();
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
-  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    entry.count = 0;
-    entry.windowStart = now;
+function buildSystemInstruction({ role, contextSummary, language, accessibilityMode }) {
+  const base = [
+    "You are StadiumSense AI, a helpful, safety-conscious assistant at a FIFA World Cup 2026 host stadium.",
+    "Only use the live stadium context provided below - do not invent facts not present in it.",
+    "Never invent emergency instructions - for any medical emergency, always tell the user to alert the nearest steward or medical point immediately.",
+  ];
+
+  if (role === "staff") {
+    base.push(
+      "You are speaking to stadium OPERATIONS STAFF, not a fan. Provide concise, actionable operational recommendations: where to redirect stewards, which amenities need resupply or overflow support, and sustainability/transport suggestions (e.g. shifting fans toward public transit or recycling points) where relevant.",
+      "Use short, scannable phrasing suitable for a staff dashboard, not conversational chat."
+    );
+  } else {
+    base.push(
+      accessibilityMode
+        ? "The user has enabled accessibility mode: prioritize step-free, wheelchair-accessible routes and keep sentences short and clear."
+        : "Keep answers friendly, brief, and specific to the fan's situation."
+    );
   }
 
-  entry.count += 1;
-  requestLog.set(ip, entry);
-  return entry.count > RATE_LIMIT_MAX_REQUESTS;
+  base.push(`Respond in ${language}.`, "Live stadium context:", String(contextSummary || "No live context provided."));
+  return base.filter(Boolean).join("\n");
 }
 
-const MAX_MESSAGE_LENGTH = 500;
-const MAX_CONTEXT_LENGTH = 4000;
-
-const ALLOWED_LANGUAGES = new Set([
-  "English",
-  "Spanish",
-  "French",
-  "Portuguese",
-  "Hindi",
-  "Arabic",
-]);
-
 module.exports = async function handler(req, res) {
-  // Restrict to POST only
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
-  // Basic same-origin style check via header (defense in depth, not a full CSRF fix)
   const origin = req.headers.origin || "";
   const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
   if (allowedOrigin !== "*" && origin && origin !== allowedOrigin) {
@@ -51,33 +55,33 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // Periodic cleanup keeps the rate-limiter map from growing unbounded
+  // on a long-lived warm instance (efficiency/memory hygiene).
+  const now = Date.now();
+  if (now - lastCleanup > CLEANUP_INTERVAL_MS) {
+    limiter.cleanup(now);
+    lastCleanup = now;
+  }
+
   const ip =
     (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
     req.socket?.remoteAddress ||
     "unknown";
 
-  if (isRateLimited(ip)) {
+  if (limiter.isLimited(ip, now)) {
     res.status(429).json({ error: "Too many requests, please wait a moment." });
     return;
   }
 
-  const { message, contextSummary, language, accessibilityMode } = req.body || {};
-
-  // Input validation - reject malformed or oversized input before it reaches the model
-  if (!message || typeof message !== "string" || message.trim().length === 0) {
-    res.status(400).json({ error: "A non-empty 'message' string is required." });
-    return;
-  }
-  if (message.length > MAX_MESSAGE_LENGTH) {
-    res.status(400).json({ error: `Message too long (max ${MAX_MESSAGE_LENGTH} chars).` });
-    return;
-  }
-  if (contextSummary && String(contextSummary).length > MAX_CONTEXT_LENGTH) {
-    res.status(400).json({ error: "Context payload too large." });
+  const validationError = validateChatRequest(req.body);
+  if (validationError) {
+    res.status(validationError.status).json({ error: validationError.error });
     return;
   }
 
-  const safeLanguage = ALLOWED_LANGUAGES.has(language) ? language : "English";
+  const { message, contextSummary, language, accessibilityMode, role } = req.body || {};
+  const safeLanguage = sanitizeLanguage(language);
+  const safeRole = sanitizeRole(role);
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -85,20 +89,12 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const systemInstruction = [
-    "You are StadiumSense AI, a helpful, safety-conscious assistant for fans at a FIFA World Cup 2026 host stadium.",
-    "Only use the live stadium context provided below to answer questions about crowd levels, wait times, and amenities.",
-    "If asked something unrelated to the stadium experience, politely redirect the user back to stadium assistance topics.",
-    "Never invent emergency instructions - for any medical emergency, always tell the user to alert the nearest steward or medical point immediately.",
-    accessibilityMode
-      ? "The user has enabled accessibility mode: prioritize step-free, wheelchair-accessible routes and keep sentences short and clear."
-      : "",
-    `Respond in ${safeLanguage}.`,
-    "Live stadium context:",
-    String(contextSummary || "No live context provided."),
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const systemInstruction = buildSystemInstruction({
+    role: safeRole,
+    contextSummary,
+    language: safeLanguage,
+    accessibilityMode,
+  });
 
   try {
     const response = await fetch(
@@ -110,7 +106,7 @@ module.exports = async function handler(req, res) {
           contents: [
             {
               role: "user",
-              parts: [{ text: `${systemInstruction}\n\nFan question: ${message}` }],
+              parts: [{ text: `${systemInstruction}\n\nQuestion: ${message}` }],
             },
           ],
           generationConfig: {
